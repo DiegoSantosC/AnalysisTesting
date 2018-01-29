@@ -201,15 +201,18 @@ namespace AnalysisTestApp
 
         private Bitmap getManhattan(Bitmap bmp1, Bitmap bmp2, int[] positions)
         {
-            int width = bmp1.Width, height = bmp1.Height;
+            int x0 = Math.Max(0, positions[0]);
+            int x1 = Math.Min(bmp1.Width, bmp2.Width + positions[0]);
+            int y0 = Math.Max(0, positions[1]);
+            int y1 = Math.Min(bmp1.Height, bmp2.Height + positions[1]);
 
-            System.Drawing.Color[,] pixelArray = new System.Drawing.Color[width, height];
+            int newWidth = x1 - x0, newHeight = y1 - y0;
 
-            Bitmap bmp = new Bitmap(width, height);
+            Bitmap bmp = new Bitmap(newWidth, newHeight);
 
-            for (int x = 0; x < width; x++)
+            for (int x = x0; x < x1; x++)
             {
-                for (int y = 0; y < height; y++)
+                for (int y = y0; y < y1; y++)
                 {
                     System.Drawing.Color pixel1 = bmp1.GetPixel(x, y);
 
@@ -222,9 +225,9 @@ namespace AnalysisTestApp
 
                     int colorValue = (Math.Abs(pixel1.R - pixel2.R) + Math.Abs(pixel1.G - pixel2.G) + Math.Abs(pixel1.B - pixel2.B)) / 3;
 
-                    pixelArray[x, y] = getGreyThreshold(Math.Abs(255 - colorValue));
+                    System.Drawing.Color pixel = getGreyThreshold(colorValue);
 
-                    bmp.SetPixel(x, y, pixelArray[x, y]);
+                    bmp.SetPixel(x, y, pixel);
                 }
             }
 
@@ -233,29 +236,30 @@ namespace AnalysisTestApp
 
         private Bitmap getEuclidean(Bitmap bmp1, Bitmap bmp2, int[] positions)
         {
-            System.Drawing.Color[,] pixelArray = new System.Drawing.Color[bmp1.Width, bmp1.Height];
+            int x0 = Math.Max(0, positions[0]);
+            int x1 = Math.Min(bmp1.Width, bmp2.Width + positions[0]);
+            int y0 = Math.Max(0, positions[1]);
+            int y1 = Math.Min(bmp1.Height, bmp2.Height + positions[1]);
 
-            Bitmap bmp = new Bitmap(bmp1.Width, bmp1.Height);
+            int newWidth = x1 - x0, newHeight = y1 - y0;
 
-            for (int x = 0; x < bmp1.Width; x++)
+            Bitmap bmp = new Bitmap(newWidth, newHeight);
+
+            for (int x = x0; x < x1; x++)
             {
-                for (int y = 0; y < bmp1.Height; y++)
+                for (int y = y0; y < y1; y++)
                 {
                     System.Drawing.Color pixel1 = bmp1.GetPixel(x, y);
 
                     // The positions deplacement will always be applied to the second taken image
 
-                    System.Drawing.Color pixel2;
-
-                    if (((x + positions[0]) > 0) && ((y + positions[1]) > 0) && ((x + positions[0]) < bmp2.Width) && ((y + positions[1]) < bmp2.Height)) { pixel2 = bmp2.GetPixel(x + positions[0], y + positions[1]); }
-                    else { pixel2 = System.Drawing.Color.FromArgb(255, 255, 255); }
-
+                    System.Drawing.Color pixel2 = bmp2.GetPixel(x + positions[0], y + positions[1]); 
 
                     int colorValue = (int)Math.Round(Math.Sqrt(Math.Pow((pixel1.R - pixel2.R), 2) + Math.Pow((pixel1.G - pixel2.G),2) + Math.Pow((pixel1.B - pixel2.B),2))/3);
 
-                    pixelArray[x, y] = getGreyThreshold(255 - colorValue);
+                    System.Drawing.Color pixel = getGreyThreshold(colorValue);
 
-                    bmp.SetPixel(x, y, pixelArray[x, y]);
+                    bmp.SetPixel(x, y, pixel);
                 }
             }
 
@@ -264,7 +268,6 @@ namespace AnalysisTestApp
 
         private Bitmap getGlobalCorrelation(Bitmap bmp1, Bitmap bmp2,int[] positions)
         {
-            int width = Math.Min(bmp1.Width, bmp2.Width), height = Math.Min(bmp1.Height, bmp2.Height);      
 
             int[] accX = new int[3], accY = new int[3];
             long[] accXX = new long[3], accYY = new long[3], accXY = new long[3];
