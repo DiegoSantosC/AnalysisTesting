@@ -32,7 +32,7 @@ namespace AnalysisTestApp
             System.Windows.Controls.Image firstImg = new System.Windows.Controls.Image();
             BitmapImage src2 = new BitmapImage();
             src2.BeginInit();
-            src2.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Test3.png", UriKind.Absolute);
+            src2.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\First.png", UriKind.Absolute);
             src2.CacheOption = BitmapCacheOption.OnLoad;
             src2.EndInit();
             firstImg.Source = src2;
@@ -42,7 +42,7 @@ namespace AnalysisTestApp
             System.Windows.Controls.Image secondImg = new System.Windows.Controls.Image();
             BitmapImage src = new BitmapImage();
             src.BeginInit();
-            src.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Test4.png", UriKind.Absolute);
+            src.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Second.png", UriKind.Absolute);
             src.CacheOption = BitmapCacheOption.OnLoad;
             src.EndInit();
             secondImg.Source = src;
@@ -50,35 +50,35 @@ namespace AnalysisTestApp
             sp2.Children.Add(secondImg);
 
 
-            System.Drawing.Image first = System.Drawing.Image.FromFile(@"Resources\Test3.png");
+            System.Drawing.Image first = System.Drawing.Image.FromFile(@"Resources\First.png");
 
-            System.Drawing.Image second = System.Drawing.Image.FromFile(@"Resources\Test4.png");
+            System.Drawing.Image second = System.Drawing.Image.FromFile(@"Resources\Second.png");
 
             Bitmap bitmap1 = new Bitmap(first);
             Bitmap bitmap2 = new Bitmap(second);
 
             int[] positions = RobinsonRepositioning(bitmap1, bitmap2);
 
-            Console.WriteLine(positions[0] + " " + positions[1]);
+            int[,] resultDifference = getManhattan(bitmap1, bitmap2, positions);
 
-            Bitmap bmp = getGlobalCorrelation(bitmap1, bitmap2, positions);
+            ConnectedComponents cc = new ConnectedComponents(resultDifference, " ", new ROI(0, resultDifference));
 
-            System.Drawing.Image img3 = bmp;
+            System.Drawing.Image img3 = System.Drawing.Image.FromFile(@"Resources\First.png"); 
             MemoryStream ms2 = new MemoryStream();
             img3.Save(ms2, System.Drawing.Imaging.ImageFormat.Bmp);
 
-            BitmapImage bi = new BitmapImage();
-            bi.BeginInit();
-            bi.CacheOption = BitmapCacheOption.OnLoad;
-            bi.StreamSource = ms2;
-            bi.EndInit();
+            //BitmapImage bi = new BitmapImage();
+            //bi.BeginInit();
+            //bi.CacheOption = BitmapCacheOption.OnLoad;
+            //bi.StreamSource = ms2;
+            //bi.EndInit();
 
-            System.Windows.Controls.Image resultImg = new System.Windows.Controls.Image();
-            resultImg.Source = bi;
-            resultImg.Stretch = Stretch.Uniform;
-            sp3.Children.Add(resultImg);
+            //System.Windows.Controls.Image resultImg = new System.Windows.Controls.Image();
+            //resultImg.Source = bi;
+            //resultImg.Stretch = Stretch.Uniform;
+            //sp3.Children.Add(resultImg);
 
-            bmp.Save(@"Resources\Result.bmp");
+            //bmp.Save(@"Resources\Result.bmp");
 
         }
 
@@ -119,9 +119,9 @@ namespace AnalysisTestApp
 
 
             // deplace 2 in relation to 1
-            for (int i = -deplY; i <= deplY; i+=stepY)
+            for (int i = -deplY; i <= deplY; i += stepY)
             {
-                for (int j = -deplX; j <= deplX; j+=stepX)
+                for (int j = -deplX; j <= deplX; j += stepX)
                 {
                     double diff = 0;
                     int count = 0;
@@ -140,12 +140,8 @@ namespace AnalysisTestApp
                     }
                     diff /= count;
 
-                    Console.WriteLine(diff);
-
-                    if (diff < bestDifference) { bestDifference = diff; bestPositions[0] = j; bestPositions[1] = i; Console.WriteLine(j + " " + i); }
+                    if (diff < bestDifference) { bestDifference = diff; bestPositions[0] = j; bestPositions[1] = i; }
                 }
-
-                Console.WriteLine();
             }
 
             return bestPositions;
@@ -199,7 +195,7 @@ namespace AnalysisTestApp
             return edgeGreyScale;
         }
 
-        private Bitmap getManhattan(Bitmap bmp1, Bitmap bmp2, int[] positions)
+        private int[,] getManhattan(Bitmap bmp1, Bitmap bmp2, int[] positions)
         {
             int x0 = Math.Max(0, positions[0]);
             int x1 = Math.Min(bmp1.Width, bmp2.Width + positions[0]);
@@ -209,6 +205,7 @@ namespace AnalysisTestApp
             int newWidth = x1 - x0, newHeight = y1 - y0;
 
             Bitmap bmp = new Bitmap(newWidth, newHeight);
+            int[,] arrSource = new int[newWidth, newHeight];
 
             for (int x = x0; x < x1; x++)
             {
@@ -227,11 +224,13 @@ namespace AnalysisTestApp
 
                     System.Drawing.Color pixel = getGreyThreshold(colorValue);
 
-                    bmp.SetPixel(x, y, pixel);
+                    bmp.SetPixel(x - x0, y - y0, pixel);
+
+                    arrSource[x - x0, y - y0] = colorValue;
                 }
             }
 
-            return bmp;
+            return arrSource;
         }
 
         private Bitmap getEuclidean(Bitmap bmp1, Bitmap bmp2, int[] positions)
@@ -318,9 +317,6 @@ namespace AnalysisTestApp
             avgY[0] = accY[0] / n;
             avgY[1] = accY[1] / n;
             avgY[2] = accY[2] / n;
-
-            Console.WriteLine(accXX[0] + " " + accXY[1] + " " + accYY[2]);
-            Console.WriteLine(varY[0] + " " + varY[1] + " " + varY[2]);
 
             varX[0] = (accXX[0]/n) - Math.Pow(avgX[0], 2);
             varX[1] = (accXX[1]/n) - Math.Pow(avgX[1], 2);
@@ -453,8 +449,6 @@ namespace AnalysisTestApp
 
         private Bitmap executeReposition(Bitmap bmp1, int[] bestPositions, int h, int w)
         {
-            Console.WriteLine(bestPositions[0] + " " + bestPositions[1]);
-
             Bitmap b = new Bitmap(w, h);
 
             System.Drawing.Color[,] pixelArray = new System.Drawing.Color[w, h];
