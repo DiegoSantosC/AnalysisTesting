@@ -42,8 +42,8 @@ namespace AnalysisTestApp
             {
                 currTag[0, 0] = tagCounter;
                 tagRemap.Add(0);
-
-            } else tagCounter++;
+                tagCounter++;
+            }  
 
             // First row is managed
 
@@ -149,11 +149,11 @@ namespace AnalysisTestApp
                     {
                         arrTagMap[x, y] = tagRemap.ElementAt(currTag[x, y]);
 
-                        if (takenIndexes.Contains(tagRemap.ElementAt(currTag[x, y])))
+                        if (takenIndexes.Contains(tagRemap.ElementAt(arrTagMap[x, y])))
                         {
-                            //clusterList.ElementAt(arrTagMap[x, y]).addPoint(x, y, arrSrc[x, y]);
+                            clusterList.ElementAt(arrTagMap[x, y]).addPoint(x, y, arrSrc[x, y]);
                         }
-                        else
+                        else if(arrTagMap[x, y] != NIL)
                         {
                             clusterList.Add(new Cluster(arrTagMap[x, y]));
                             takenIndexes.Add(arrTagMap[x, y]);
