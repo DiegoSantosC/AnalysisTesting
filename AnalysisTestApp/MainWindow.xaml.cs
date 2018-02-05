@@ -32,7 +32,7 @@ namespace AnalysisTestApp
             System.Windows.Controls.Image firstImg = new System.Windows.Controls.Image();
             BitmapImage src2 = new BitmapImage();
             src2.BeginInit();
-            src2.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\First.png", UriKind.Absolute);
+            src2.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Test3.png", UriKind.Absolute);
             src2.CacheOption = BitmapCacheOption.OnLoad;
             src2.EndInit();
             firstImg.Source = src2;
@@ -42,7 +42,7 @@ namespace AnalysisTestApp
             System.Windows.Controls.Image secondImg = new System.Windows.Controls.Image();
             BitmapImage src = new BitmapImage();
             src.BeginInit();
-            src.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Second.png", UriKind.Absolute);
+            src.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Test4.png", UriKind.Absolute);
             src.CacheOption = BitmapCacheOption.OnLoad;
             src.EndInit();
             secondImg.Source = src;
@@ -50,9 +50,9 @@ namespace AnalysisTestApp
             sp2.Children.Add(secondImg);
 
 
-            System.Drawing.Image first = System.Drawing.Image.FromFile(@"Resources\First.png");
+            System.Drawing.Image first = System.Drawing.Image.FromFile(@"Resources\Test3.png");
 
-            System.Drawing.Image second = System.Drawing.Image.FromFile(@"Resources\Second.png");
+            System.Drawing.Image second = System.Drawing.Image.FromFile(@"Resources\Test4.png");
 
             Bitmap bitmap1 = new Bitmap(first);
             Bitmap bitmap2 = new Bitmap(second);
@@ -61,11 +61,15 @@ namespace AnalysisTestApp
 
             int[,] resultDifference = getManhattan(bitmap1, bitmap2, positions);
 
+            //int[,] testInput = createTestInput();
+
             ConnectedComponents cc = new ConnectedComponents(resultDifference, " ", new ROI(0, resultDifference));
 
             System.Drawing.Image img3 = System.Drawing.Image.FromFile(@"Resources\First.png"); 
             MemoryStream ms2 = new MemoryStream();
             img3.Save(ms2, System.Drawing.Imaging.ImageFormat.Bmp);
+
+            Draw(cc.marked);
 
             //BitmapImage bi = new BitmapImage();
             //bi.BeginInit();
@@ -80,6 +84,57 @@ namespace AnalysisTestApp
 
             //bmp.Save(@"Resources\Result.bmp");
 
+        }
+
+        private int[,] createTestInput()
+        {
+            int[,] test = new int[8, 8];
+
+            for(int y = 0; y < 8; y++)
+            {
+                for(int x = 0; x < 8; x++)
+                {
+                    test[x, y] = 0;
+                }
+            }
+
+            test[1, 1] = 255;
+            test[1, 2] = 255;
+            test[1, 3] = 255;
+            test[2, 1] = 255;
+            test[2, 2] = 255;
+            test[2, 3] = 255;
+            test[4, 4] = 255;
+            test[4, 5] = 255;
+            test[5, 4] = 255;
+            test[5, 5] = 255;
+            test[6, 4] = 255;
+            test[6, 5] = 255;
+            test[5, 1] = 255;
+            test[5, 2] = 255;
+
+            return test;
+        }
+
+        private void Draw(int[,] marked)
+        {
+            Bitmap bmp = new Bitmap(marked.GetLength(0), marked.GetLength(1));
+
+            for (int y = 0; y < marked.GetLength(1); y++)
+            {
+                for (int x = 0; x < marked.GetLength(0); x++)
+                {
+                    if(marked[x, y] == -1)
+                    {
+                        bmp.SetPixel(x, y, System.Drawing.Color.Green);
+                    }else
+                    {
+                        bmp.SetPixel(x, y, getGrey(255 - marked[x, y]));
+                    }
+                }
+            }
+
+            bmp.Save(@"Resources\Result.bmp");
         }
 
         private int[] RobinsonRepositioning(Bitmap bitmap1, Bitmap bitmap2)

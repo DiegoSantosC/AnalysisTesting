@@ -22,6 +22,11 @@ namespace AnalysisTestApp
             maxY = 0;
         }
 
+        public int getId()
+        {
+            return id;
+        }
+
         public void addPoint(int x, int y, int colorValue)
         {
             count++;

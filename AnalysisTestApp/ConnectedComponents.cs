@@ -8,9 +8,10 @@ namespace AnalysisTestApp
 {
     class ConnectedComponents
     {
-        int[,] arrTagMap;
+        private int[,] arrTagMap;
+        public int[,] marked;
 
-        public ConnectedComponents(int [,] arrSrc, string Timelapse, ROI region)
+        public ConnectedComponents(int[,] arrSrc, string Timelapse, ROI region)
         {
             // Initializing
 
@@ -23,14 +24,16 @@ namespace AnalysisTestApp
 
             arrTagMap = new int[nMaxX, nMaxY];
 
+            marked = new int[nMaxX, nMaxY];
+
             List<int> tagRemap = new List<int>();
 
             int[,] currTag = new int[nMaxX, nMaxY];
             int tagCounter = 0;
 
-            for(int i = 0; i <nMaxY; i++)
+            for (int i = 0; i < nMaxY; i++)
             {
-                for(int j = 0; j<nMaxX; j++)
+                for (int j = 0; j < nMaxX; j++)
                 {
                     currTag[j, i] = NIL;
                 }
@@ -43,7 +46,7 @@ namespace AnalysisTestApp
                 currTag[0, 0] = tagCounter;
                 tagRemap.Add(0);
                 tagCounter++;
-            }  
+            }
 
             // First row is managed
 
@@ -56,7 +59,7 @@ namespace AnalysisTestApp
                     if (!((nLeftTag != NIL) && fnAreSimilar(arrSrc[x - 1, 0], arrSrc[x, 0])))
                     {
                         tagRemap.Add(tagCounter);
-                        nLeftTag++; tagCounter++;
+                        nLeftTag = tagCounter; tagCounter++;
                     }
 
                 }
@@ -76,17 +79,18 @@ namespace AnalysisTestApp
                     if (!((nDownTag != NIL) && fnAreSimilar(arrSrc[0, y - 1], arrSrc[0, y])))
                     {
                         tagRemap.Add(tagCounter);
-                        nDownTag++; tagCounter++;
+                        nDownTag = tagCounter; tagCounter++;
+
                     }
                 }
                 else nDownTag = NIL;
 
-                currTag[0 , y] = nDownTag;
-
+                currTag[0, y] = nDownTag;
 
                 for (int x = 1; x < nMaxX; x++)
                 {
-                    int nLeftTag = currTag[x - 1 , y];
+                    nDownTag = currTag[x, y - 1];
+                    int nLeftTag = currTag[x - 1, y];
 
                     if ((region != null || isInside(region, x, y)) && (fnMustInclude(arrSrc[x, y])))
                     {
@@ -94,19 +98,19 @@ namespace AnalysisTestApp
                         {
                             currTag[x, y] = nLeftTag;
 
-                            if((nDownTag != NIL) && (tagRemap.ElementAt(nDownTag) != tagRemap.ElementAt(nLeftTag)) && fnAreSimilar(arrSrc[x, y - 1], arrSrc[x, y]))
+                            if ((nDownTag != NIL) && (tagRemap.ElementAt(nDownTag) != tagRemap.ElementAt(nLeftTag)) && fnAreSimilar(arrSrc[x, y - 1], arrSrc[x, y]))
                             {
                                 int nOrig = tagRemap.ElementAt(nLeftTag);
                                 int nDest = tagRemap.ElementAt(nDownTag);
 
-                                if(nOrig > nDest)
+                                if (nOrig > nDest)
                                 {
                                     int aux = nOrig;
                                     nOrig = nDest;
                                     nDest = aux;
                                 }
 
-                                for (int i = 0; i<tagRemap.Count(); i++)
+                                for (int i = 0; i < tagRemap.Count(); i++)
                                 {
                                     if (tagRemap.ElementAt(i) == nDest)
                                     {
@@ -142,33 +146,6 @@ namespace AnalysisTestApp
 
             List<int[]> unremapped = new List<int[]>();
 
-            for(int y = 0; y < nMaxY; y++)
-            {
-                for(int x = 0; x < nMaxX; x++)
-                {
-                   if(currTag[x, y] >= unremapped.Count)
-                    {
-                        int[] empty = new int[] { currTag[x, y], 1 };
-                        unremapped.Add(empty);
-
-                        Console.WriteLine(currTag[x , y] + " " + unremapped.Count);
-
-                    }
-                    else if(currTag[x , y] != NIL)
-                    {
-                        unremapped.ElementAt(currTag[x, y])[1]++;
-                    }
-                }
-            }
-
-            for (int i = 0; i < unremapped.Count; i++)
-            {
-                Console.WriteLine(unremapped.ElementAt(i)[0] +  " " + unremapped.ElementAt(i)[1]);
-
-            }
-
-            return;
-
             // Execute remapping
             for (int y = 0; y < nMaxY; y++)
             {
@@ -180,38 +157,71 @@ namespace AnalysisTestApp
 
                         if (takenIndexes.Contains(arrTagMap[x, y]))
                         {
-                            try
-                            {
-                                clusterList.ElementAt(arrTagMap[x, y]).addPoint(x, y, arrSrc[x, y]);
-                            }
-                            catch (ArgumentOutOfRangeException e)
-                            {
-                                Console.WriteLine(clusterList.Count + " " + arrTagMap[x, y]);
-                            }
+                            clusterList.ElementAt(arrTagMap[x, y]).addPoint(x, y, arrSrc[x, y]);
                         }
-                        else if(arrTagMap[x, y] != NIL)
+                        else if (arrTagMap[x, y] != NIL)
                         {
                             clusterList.Add(new Cluster(arrTagMap[x, y]));
                             takenIndexes.Add(arrTagMap[x, y]);
-
-                            Console.WriteLine(clusterList.Count);
-
+                            clusterList.ElementAt(arrTagMap[x, y]).addPoint(x, y, arrSrc[x, y]);
                         }
                     }
                     else arrTagMap[x, y] = NIL;
+
+                    marked[x, y] = arrSrc[x, y];
                 }
             }
 
-            Console.WriteLine(tagRemap.Count);
+            //for (int y = 0; y < nMaxY; y++)
+            //{
+            //    Console.WriteLine();
+            //    for (int x = 0; x < nMaxX; x++)
+            //    {
+            //        Console.Write(arrSrc[x, y] + "   ");
+            //    }
+            //}
 
-            for (int i=0; i<tagRemap.Count; i++)
+            //for (int y = 0; y < nMaxY; y++)
+            //{
+            //    Console.WriteLine();
+            //    for (int x = 0; x < nMaxX; x++)
+            //    {
+            //        Console.Write(arrTagMap[x,y] + "   ");
+            //    }
+            //}
+
+            // Siso with all cluster's info & drawing bounding boxes in an arrayBox
+
+            for (int i = 0; i < clusterList.Count; i++)
             {
-                Console.Write(tagRemap.ElementAt(i) +" ");
+                Cluster c = clusterList.ElementAt(i);
+
+                if (c.getSize() > 5)
+                {
+                    Console.WriteLine(" Index: " + c.getId());
+                    Console.WriteLine(" Size: " + c.getSize());
+
+                    Console.WriteLine(" Bounding Box: Start = (" + c.getBoundingBox()[0] + " , " + c.getBoundingBox()[1] + "); End = (" + c.getBoundingBox()[2] + " , " + c.getBoundingBox()[3] + ")");
+                    Console.WriteLine(" Color average = " + c.getColorAvg());
+                    Console.WriteLine();
+
+                    // Horizontal lines
+
+                    for (int a = c.getBoundingBox()[0]; a < c.getBoundingBox()[2]; a++)
+                    {
+                        marked[a, c.getBoundingBox()[1]] = -1;
+                        marked[a, c.getBoundingBox()[3]] = -1;
+                    }
+
+                    // Vertica lines
+
+                    for (int a = c.getBoundingBox()[1]; a < c.getBoundingBox()[3]; a++)
+                    {
+                        marked[c.getBoundingBox()[0], a] = -1;
+                        marked[c.getBoundingBox()[2], a] = -1;
+                    }
+                }
             }
-
-            Console.WriteLine(tagCounter);
-            Console.WriteLine(clusterList.Count);
-
         }
 
         // Decide wether if two pixels belong to the same cluster
