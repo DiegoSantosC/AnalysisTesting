@@ -140,6 +140,35 @@ namespace AnalysisTestApp
             List<Cluster> clusterList = new List<Cluster>();
             List<int> takenIndexes = new List<int>();
 
+            List<int[]> unremapped = new List<int[]>();
+
+            for(int y = 0; y < nMaxY; y++)
+            {
+                for(int x = 0; x < nMaxX; x++)
+                {
+                   if(currTag[x, y] >= unremapped.Count)
+                    {
+                        int[] empty = new int[] { currTag[x, y], 1 };
+                        unremapped.Add(empty);
+
+                        Console.WriteLine(currTag[x , y] + " " + unremapped.Count);
+
+                    }
+                    else if(currTag[x , y] != NIL)
+                    {
+                        unremapped.ElementAt(currTag[x, y])[1]++;
+                    }
+                }
+            }
+
+            for (int i = 0; i < unremapped.Count; i++)
+            {
+                Console.WriteLine(unremapped.ElementAt(i)[0] +  " " + unremapped.ElementAt(i)[1]);
+
+            }
+
+            return;
+
             // Execute remapping
             for (int y = 0; y < nMaxY; y++)
             {
@@ -149,14 +178,24 @@ namespace AnalysisTestApp
                     {
                         arrTagMap[x, y] = tagRemap.ElementAt(currTag[x, y]);
 
-                        if (takenIndexes.Contains(tagRemap.ElementAt(arrTagMap[x, y])))
+                        if (takenIndexes.Contains(arrTagMap[x, y]))
                         {
-                            clusterList.ElementAt(arrTagMap[x, y]).addPoint(x, y, arrSrc[x, y]);
+                            try
+                            {
+                                clusterList.ElementAt(arrTagMap[x, y]).addPoint(x, y, arrSrc[x, y]);
+                            }
+                            catch (ArgumentOutOfRangeException e)
+                            {
+                                Console.WriteLine(clusterList.Count + " " + arrTagMap[x, y]);
+                            }
                         }
                         else if(arrTagMap[x, y] != NIL)
                         {
                             clusterList.Add(new Cluster(arrTagMap[x, y]));
                             takenIndexes.Add(arrTagMap[x, y]);
+
+                            Console.WriteLine(clusterList.Count);
+
                         }
                     }
                     else arrTagMap[x, y] = NIL;
