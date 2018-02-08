@@ -23,53 +23,52 @@ namespace AnalysisTestApp
     public partial class MainWindow : Window
     {
         private bool drawing;
+        private List<List<Cluster>> blobTrack;
+        private List<Cluster> lastTrack;
 
         public MainWindow()
         {
 
             InitializeComponent();
 
-            System.Windows.Controls.Image firstImg = new System.Windows.Controls.Image();
-            BitmapImage src2 = new BitmapImage();
-            src2.BeginInit();
-            src2.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Test3.png", UriKind.Absolute);
-            src2.CacheOption = BitmapCacheOption.OnLoad;
-            src2.EndInit();
-            firstImg.Source = src2;
-            firstImg.Stretch = Stretch.Uniform;
-            sp1.Children.Add(firstImg);
+            blobTrack = new List<List<Cluster>>();
 
-            System.Windows.Controls.Image secondImg = new System.Windows.Controls.Image();
-            BitmapImage src = new BitmapImage();
-            src.BeginInit();
-            src.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Test4.png", UriKind.Absolute);
-            src.CacheOption = BitmapCacheOption.OnLoad;
-            src.EndInit();
-            secondImg.Source = src;
-            secondImg.Stretch = Stretch.Uniform;
-            sp2.Children.Add(secondImg);
+            startTracking();
+
+            // UI elements initialization
+
+            //System.Windows.Controls.Image firstImg = new System.Windows.Controls.Image();
+            //BitmapImage src2 = new BitmapImage();
+            //src2.BeginInit();
+            //src2.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Captures\C1.png", UriKind.Absolute);
+            //src2.CacheOption = BitmapCacheOption.OnLoad;
+            //src2.EndInit();
+            //firstImg.Source = src2;
+            //firstImg.Stretch = Stretch.Uniform;
+            //sp1.Children.Add(firstImg);
+
+            //System.Windows.Controls.Image secondImg = new System.Windows.Controls.Image();
+            //BitmapImage src = new BitmapImage();
+            //src.BeginInit();
+            //src.UriSource = new Uri(AppDomain.CurrentDomain.BaseDirectory + @"Resources\Captures\C10.png", UriKind.Absolute);
+            //src.CacheOption = BitmapCacheOption.OnLoad;
+            //src.EndInit();
+            //secondImg.Source = src;
+            //secondImg.Stretch = Stretch.Uniform;
+            //sp2.Children.Add(secondImg);
 
 
-            System.Drawing.Image first = System.Drawing.Image.FromFile(@"Resources\Test3.png");
+            //System.Drawing.Image first = System.Drawing.Image.FromFile(@"Resources\Captures\C1.png");
+            //System.Drawing.Image second = System.Drawing.Image.FromFile(@"Resources\Captures\C10.png");
 
-            System.Drawing.Image second = System.Drawing.Image.FromFile(@"Resources\Test4.png");
+            //Bitmap bitmap1 = new Bitmap(first);
+            //Bitmap bitmap2 = new Bitmap(second);
 
-            Bitmap bitmap1 = new Bitmap(first);
-            Bitmap bitmap2 = new Bitmap(second);
-
-            int[] positions = RobinsonRepositioning(bitmap1, bitmap2);
-
-            int[,] resultDifference = getManhattan(bitmap1, bitmap2, positions);
-
-            //int[,] testInput = createTestInput();
-
-            ConnectedComponents cc = new ConnectedComponents(resultDifference, " ", new ROI(0, resultDifference));
-
-            System.Drawing.Image img3 = System.Drawing.Image.FromFile(@"Resources\First.png"); 
-            MemoryStream ms2 = new MemoryStream();
-            img3.Save(ms2, System.Drawing.Imaging.ImageFormat.Bmp);
-
-            Draw(cc.marked);
+            
+            
+            //System.Drawing.Image img3 = System.Drawing.Image.FromFile(@"Resources\Test3.png"); 
+            //MemoryStream ms2 = new MemoryStream();
+            //img3.Save(ms2, System.Drawing.Imaging.ImageFormat.Bmp);
 
             //BitmapImage bi = new BitmapImage();
             //bi.BeginInit();
@@ -86,35 +85,63 @@ namespace AnalysisTestApp
 
         }
 
-        private int[,] createTestInput()
+        private void startTracking()
         {
-            int[,] test = new int[8, 8];
+            Bitmap[] images = new Bitmap[11];
 
-            for(int y = 0; y < 8; y++)
+            for(int i=0; i<11; i++)
             {
-                for(int x = 0; x < 8; x++)
+               
+                // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WRONG CODE
+
+                System.Drawing.Image img = System.Drawing.Image.FromFile(@"Resources\Captures\C1.png");
+                Bitmap bmp = new Bitmap(img);
+
+                images[i] = bmp;
+            }
+            
+            for(int i = 1; i< 11; i++)
+            {
+                // Repositioning finding and executing difference between the two images
+
+                int[] positions = RobinsonRepositioning(images[0], images[i]);
+
+                int[,] resultDifference = getManhattan(images[0], images[i], positions);
+
+                List<Cluster> frameBlobs = FindObjects(resultDifference);
+
+                if (blobTrack.Count == 0) firstScan(frameBlobs);
+                else
                 {
-                    test[x, y] = 0;
+                    assignBlobs(frameBlobs);
                 }
             }
-
-            test[1, 1] = 255;
-            test[1, 2] = 255;
-            test[1, 3] = 255;
-            test[2, 1] = 255;
-            test[2, 2] = 255;
-            test[2, 3] = 255;
-            test[4, 4] = 255;
-            test[4, 5] = 255;
-            test[5, 4] = 255;
-            test[5, 5] = 255;
-            test[6, 4] = 255;
-            test[6, 5] = 255;
-            test[5, 1] = 255;
-            test[5, 2] = 255;
-
-            return test;
         }
+
+        // Bitmap obtention from a local saved image
+
+        private Bitmap getBitmap(int v)
+        {
+            string imgName = "C" + v.ToString() + ".png";
+            string source = System.IO.Path.Combine(@"Resources\Captures\", imgName);
+            System.Drawing.Image img = System.Drawing.Image.FromFile(source);
+
+            Bitmap bmp = new Bitmap(img);
+            return bmp; 
+        }
+
+        private List<Cluster> FindObjects(int[,] resultDifference)
+        {
+            ConnectedComponents cc = new ConnectedComponents(resultDifference, " ", new ROI(AdvancedOptions._nROIMargin, resultDifference), "");
+
+            // Drawing the image will result in acquiring visual feedback of the blobs detected via their bounding boxes
+
+            // Draw(cc.marked);
+
+            return cc.getIdentifiedBlobs();    
+        }
+
+        // Turn int[,] containing pixel grey color values and cluster bounding boxes' contour into bitmap pixel colours
 
         private void Draw(int[,] marked)
         {
@@ -137,6 +164,257 @@ namespace AnalysisTestApp
             bmp.Save(@"Resources\Result.bmp");
         }
 
+        // Initial step of blob track
+
+        private void firstScan(List<Cluster> blobs)
+        {
+            for(int i = 0; i < blobs.Count; i++)
+            {
+                List<Cluster> initialList = new List<Cluster>();
+                initialList.Add(blobs.ElementAt(i));
+
+                blobTrack.Add(initialList);
+
+            }
+
+            lastTrack = blobs;
+        }
+
+        // Relate obtained blobs to those already tracked
+
+        private void assignBlobs(List<Cluster> blobs)
+        {
+            bool mergedChance = false, newColonyChance = false; 
+
+            if (blobs.Count < lastTrack.Count) mergedChance = true;
+            if (blobs.Count > lastTrack.Count) newColonyChance = true;
+
+            for(int i = 0; i < blobs.Count; i++)
+            {
+                if (!mergedChance && !newColonyChance)
+                {
+                    bool match = blobCompare(lastTrack.ElementAt(i), blobs.ElementAt(i));
+
+                    if (match)
+                    {
+                        int index = lastTrack.ElementAt(i).getId();
+                        blobs.ElementAt(i).setIndex(index);
+
+                        blobTrack.ElementAt(index).Add(blobs.ElementAt(i));
+
+                    }else
+                    {
+                        // Try matching it with other blobs
+
+                        int matchIndex = blobCompare(lastTrack, blobs.ElementAt(i));
+
+                        if(matchIndex >= 0)
+                        {
+                            int index = lastTrack.ElementAt(matchIndex).getId();
+                            blobs.ElementAt(i).setIndex(index);
+
+                            blobTrack.ElementAt(index).Add(blobs.ElementAt(i));
+                        }
+                        else
+                        {
+                            // No match found 
+
+                            bool merged = findPossibleMerge(lastTrack, blobs.ElementAt(i));
+                            if (!merged)
+                            {
+                                // New colony has appeared
+
+                                List<Cluster> newlist = new List<Cluster>();
+                                blobs.ElementAt(i).setIndex(blobTrack.Count);
+                                newlist.Add(blobs.ElementAt(i));
+                                blobTrack.Add(newlist);
+
+                            }
+                        }
+                    }
+                }else
+                {
+                    // Try matching it with other blobs
+
+                    int matchIndex = blobCompare(lastTrack, blobs.ElementAt(i));
+
+                    if (matchIndex >= 0)
+                    {
+                        int index = lastTrack.ElementAt(matchIndex).getId();
+                        blobs.ElementAt(i).setIndex(index);
+
+                        blobTrack.ElementAt(index).Add(blobs.ElementAt(i));
+                    }
+                    else
+                    {
+                        // No match found 
+
+                        bool merged = findPossibleMerge(lastTrack, blobs.ElementAt(i));
+                        if (!merged)
+                        {
+                            // New colony has appeared
+
+                            List<Cluster> newlist = new List<Cluster>();
+                            blobs.ElementAt(i).setIndex(blobTrack.Count);
+                            newlist.Add(blobs.ElementAt(i));
+                            blobTrack.Add(newlist);
+
+                        }
+                    }
+                }
+
+                lastTrack = blobs;
+            }
+
+        }
+
+        private bool findPossibleMerge(List<Cluster> lastTrack, Cluster blob)
+        {
+            for(int i = 0; i < lastTrack.Count; i++)
+            {
+                for (int j = 0; j < lastTrack.Count; j++)
+                {
+                    if(Merged(lastTrack.ElementAt(i), lastTrack.ElementAt(j), blob))
+                    {
+                        int indexDest, indexBrunch;
+
+                        if (lastTrack.ElementAt(i).getSize() > lastTrack.ElementAt(j).getSize())
+                        {
+                            indexDest = lastTrack.ElementAt(i).getId();
+                            indexBrunch = lastTrack.ElementAt(j).getId();
+
+                            blobTrack.ElementAt(indexBrunch).ElementAt(blobTrack.ElementAt(indexBrunch).Count - 1).hasMerged();
+                            blobTrack.ElementAt(indexDest).ElementAt(blobTrack.ElementAt(indexDest).Count - 1).addBranch(blobTrack.ElementAt(indexBrunch));
+
+                            blob.setIndex(indexDest);
+                            blobTrack.ElementAt(indexDest).Add(blob);
+                          
+                        }
+                        else
+                        {
+                            indexDest = lastTrack.ElementAt(j).getId();
+                            indexBrunch = lastTrack.ElementAt(i).getId();
+
+                            blobTrack.ElementAt(indexBrunch).ElementAt(blobTrack.ElementAt(indexBrunch).Count - 1).hasMerged();
+                            blobTrack.ElementAt(indexDest).ElementAt(blobTrack.ElementAt(indexDest).Count - 1).addBranch(blobTrack.ElementAt(indexBrunch));
+
+                            blob.setIndex(indexDest);
+                            blobTrack.ElementAt(indexDest).Add(blob);
+                        }
+
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // Characteristics comparison that identify a merged blob
+
+        private bool Merged(Cluster cluster1, Cluster cluster2, Cluster blob)
+        {
+            int possibility = 0;
+
+            double sizeDifference = (blob.getSize() - (cluster1.getSize() + cluster2.getSize())) / blob.getSize();
+
+            // First feature: merged blob's size must be roughly twice it's original component's size
+
+            if (sizeDifference < AdvancedOptions._dMergingTolerance && sizeDifference > 1)
+            {
+                possibility++;
+            }
+
+            int[] bb1 = cluster1.getBoundingBox();
+            int[] bb2 = cluster2.getBoundingBox();
+            int[] bb3 = blob.getBoundingBox();
+
+            // Second feature : bounding boxes intersect
+
+            bool intersection = false;
+
+            if (Math.Abs(bb1[0] - bb2[0]) < AdvancedOptions._nMergingDistance || Math.Abs(bb1[0] - bb2[2]) < AdvancedOptions._nMergingDistance || Math.Abs(bb1[2] - bb2[0]) < AdvancedOptions._nMergingDistance
+                || Math.Abs(bb1[2] - bb2[2]) < AdvancedOptions._nMergingDistance) intersection = true;
+
+            if (Math.Abs(bb1[1] - bb2[1]) < AdvancedOptions._nMergingDistance || Math.Abs(bb1[1] - bb2[3]) < AdvancedOptions._nMergingDistance || Math.Abs(bb1[3] - bb2[1]) < AdvancedOptions._nMergingDistance
+                || Math.Abs(bb1[3] - bb2[3]) < AdvancedOptions._nMergingDistance) intersection = true;
+
+            if (intersection) possibility++;
+
+            int[] center1 = new int[2], center2 = new int[2], newCenter = new int[2];
+
+            center1[0] = (bb1[2] - bb1[0]) / 2 + bb1[0];
+            center1[1] = (bb1[3] - bb1[1]) / 2 + bb1[1];
+
+            center2[0] = (bb2[2] - bb2[0]) / 2 + bb2[0];
+            center2[1] = (bb2[3] - bb2[1]) / 2 + bb2[1];
+
+            newCenter[0] = (bb3[2] - bb3[0]) / 2 + bb3[0];
+            newCenter[1] = (bb3[3] - bb3[1]) / 2 + bb3[1];
+
+            int[] predictedCenter = new int[2];
+            predictedCenter[0] = (Math.Max(center1[0], center2[0]) - Math.Min(center1[0], center2[0])) / 2 + Math.Min(center1[0], center2[0]);
+            predictedCenter[1] = (Math.Max(center1[1], center2[1]) - Math.Min(center1[1], center2[1])) / 2 + Math.Min(center1[1], center2[1]);
+
+            if (Math.Abs(predictedCenter[0] - newCenter[0]) / Math.Sqrt(blob.getSize()) < AdvancedOptions._dMergingTolerance && Math.Abs(predictedCenter[1] - newCenter[1]) /
+                Math.Sqrt(blob.getSize()) < AdvancedOptions._dMergingTolerance) possibility++;
+
+            if (possibility > 1) return true;
+            else return false;
+
+        }
+
+        private int blobCompare(List<Cluster> clusterList, Cluster c)
+        {
+            for(int i = 0; i < clusterList.Count; i++)
+            {
+                bool match = blobCompare(clusterList.ElementAt(i), c);
+
+                if (match) return i;
+            }
+
+            return -1;
+        }
+
+        private bool blobCompare(Cluster c1, Cluster c2)
+        {
+            int[] center1 = new int[2], center2 = new int[2];
+            int X0Depl, X1Depl, Y0Depl, Y1Depl;
+            double boundsDepl, centerDepl;
+
+            int[] bb1 = c1.getBoundingBox();
+            int[] bb2 = c2.getBoundingBox();
+
+            center1[0] = (bb1[2] - bb1[0]) / 2 + bb1[0];
+            center1[1] = (bb1[3] - bb1[1]) / 2 + bb1[1];
+        
+            center2[0] = (bb2[2] - bb2[0]) / 2 + bb2[0];
+            center2[1] = (bb2[3] - bb2[1]) / 2 + bb2[1];
+
+            // The deplacement of the two centers between each other is normalized in terms of the blob's size
+
+            centerDepl = (Math.Abs(center1[0] - center2[0]) + Math.Abs(center1[1] - center2[1]))/2 /c1.getSize();
+
+            X0Depl = (bb2[0] - bb1[0]);
+            X1Depl = (bb2[2] - bb1[2]);
+            Y0Depl = (bb2[1] - bb1[1]);
+            Y1Depl = (bb2[3] - bb1[3]);
+
+            boundsDepl = (X0Depl + X1Depl + Y0Depl + Y1Depl) / c1.getSize();
+
+            // Abnormal deplacement
+
+            if (boundsDepl < AdvancedOptions._dBoundsDiminish || centerDepl - boundsDepl > AdvancedOptions._dGreatDeplacement) return false;
+
+            // Abnormal growth
+
+            if (boundsDepl > AdvancedOptions._dAbnormalGrowth && centerDepl > AdvancedOptions._dGreatDeplacement) return false;
+
+            return true; 
+        }
+
+        // Frute force best match between two given images taking into consideration their edges, found via a Robinson mask filter
+
         private int[] RobinsonRepositioning(Bitmap bitmap1, Bitmap bitmap2)
         {
             int[,] edges1 = findRobinsonEdges(bitmap1);
@@ -147,6 +425,8 @@ namespace AnalysisTestApp
             return positions;
         }
 
+        // Given certain edges of two imags, brute forthe thought them to obtain minimal ECM
+
         private int[] findRobinsonReposition(int[,] e1, int[,] e2)
         {
             // set range of values to be tested
@@ -155,7 +435,7 @@ namespace AnalysisTestApp
 
             // static values based on Sprout's usual deplacements
 
-            int min = 3, max = 5;
+            int min = AdvancedOptions._nMinReposition, max = AdvancedOptions._nMaxReposition;
 
             int[] bestPositions = new int[2];
             double bestDifference = Int32.MaxValue;
@@ -213,6 +493,8 @@ namespace AnalysisTestApp
 
             // edges in fig
 
+            Console.WriteLine(bmp.Width + " " + bmp.Height);
+
             int[,] edgeGreyScale = new int[bmp.Width, bmp.Height];
 
             for (int x = 1; x < bmp.Width; x++)
@@ -250,6 +532,8 @@ namespace AnalysisTestApp
             return edgeGreyScale;
         }
 
+        // Difference computation via Manhattan distance
+
         private int[,] getManhattan(Bitmap bmp1, Bitmap bmp2, int[] positions)
         {
             int x0 = Math.Max(0, positions[0]);
@@ -267,8 +551,6 @@ namespace AnalysisTestApp
                 for (int y = y0; y < y1; y++)
                 {
                     System.Drawing.Color pixel1 = bmp1.GetPixel(x, y);
-
-                    // The positions deplacement will always be applied to the second taken image
 
                     System.Drawing.Color pixel2; 
 
@@ -288,6 +570,8 @@ namespace AnalysisTestApp
             return arrSource;
         }
 
+        // Difference computation via Euclidean distance
+
         private Bitmap getEuclidean(Bitmap bmp1, Bitmap bmp2, int[] positions)
         {
             int x0 = Math.Max(0, positions[0]);
@@ -305,8 +589,6 @@ namespace AnalysisTestApp
                 {
                     System.Drawing.Color pixel1 = bmp1.GetPixel(x, y);
 
-                    // The positions deplacement will always be applied to the second taken image
-
                     System.Drawing.Color pixel2 = bmp2.GetPixel(x + positions[0], y + positions[1]); 
 
                     int colorValue = (int)Math.Round(Math.Sqrt(Math.Pow((pixel1.R - pixel2.R), 2) + Math.Pow((pixel1.G - pixel2.G),2) + Math.Pow((pixel1.B - pixel2.B),2))/3);
@@ -320,7 +602,9 @@ namespace AnalysisTestApp
             return bmp;
         }
 
-        private Bitmap getGlobalCorrelation(Bitmap bmp1, Bitmap bmp2,int[] positions)
+        // Difference computation using the pearson coefficient parameter
+
+        private Bitmap getGlobalCorrelation(Bitmap bmp1, Bitmap bmp2, int[] positions)
         {
 
             int[] accX = new int[3], accY = new int[3];
@@ -331,6 +615,24 @@ namespace AnalysisTestApp
             int x1 = Math.Min(bmp1.Width, bmp2.Width + positions[0]);
             int y0 = Math.Max(0, positions[1]);
             int y1 = Math.Min(bmp1.Height, bmp2.Height + positions[1]);
+
+            double epsilon = AdvancedOptions._dEpsilonValue;
+
+            for(int i=0; i<3; i++)
+            {
+                accX[i] = 0;
+                accY[i] = 0;
+                accXX[i] = 0;
+                accYY[i] = 0;
+                accXY[i] = 0;
+                avgX[i] = 0;
+                avgY[i] = 0;
+                varX[i] = 0;
+                avgY[i] = 0;
+                covXY[i] = 0;
+                corrIndex[i] = 0;
+
+            }
 
             for (int j = y0; j < y1; j++) 
             {
@@ -381,13 +683,13 @@ namespace AnalysisTestApp
             varY[1] = (accYY[1]/n) - Math.Pow(avgY[1], 2);
             varY[2] = (accYY[2]/n) - Math.Pow(avgY[2], 2);
 
-            if (varX[0] < 0) varX[0] = 1.0e-9;
-            if (varX[1] < 0) varX[1] = 1.0e-9;
-            if (varX[2] < 0) varX[2] = 1.0e-9;
+            if (varX[0] <= 0) varX[0] = epsilon;
+            if (varX[1] <= 0) varX[1] = epsilon;
+            if (varX[2] <= 0) varX[2] = epsilon;
 
-            if (varY[0] < 0) varY[0] = 1.0e-9;
-            if (varY[1] < 0) varY[1] = 1.0e-9;
-            if (varY[2] < 0) varY[2] = 1.0e-9;
+            if (varY[0] <= 0) varY[0] = epsilon;
+            if (varY[1] <= 0) varY[1] = epsilon;
+            if (varY[2] <= 0) varY[2] = epsilon;
 
             covXY[0] = (accXY[0] / n) - avgX[0] * avgY[0];
             covXY[1] = (accXY[1] / n) - avgX[1] * avgY[1];
@@ -427,9 +729,11 @@ namespace AnalysisTestApp
             return (System.Drawing.Color.FromArgb(colorValue, colorValue, colorValue));
         }
 
+        // Decide wether a pixel's difference is enough to be relevant or not via a fixed threshold and return absolute value
+
         private System.Drawing.Color getGreyThreshold(int colorValue)
         {
-            int threshold = 200;
+            int threshold = AdvancedOptions._nThresholdValue;
 
             if (colorValue < threshold)
             {
@@ -445,9 +749,11 @@ namespace AnalysisTestApp
             }
         }
 
+        // Decide wether a pixel's difference is enough to be relevant or not via a fixed threshold and return grey value
+
         private System.Drawing.Color getThreshold(int colorValue)
         {
-            int threshold = 200;
+            int threshold = AdvancedOptions._nThresholdValue;
 
             if (colorValue < threshold)
             {
@@ -462,9 +768,11 @@ namespace AnalysisTestApp
             }
         }
 
+        // Decide wether a pixel's difference is enough to be relevant or not via a hysteresis cycle
+
         private System.Drawing.Color getHysteresis(int colorValue)
         {
-            int downThreshold = 180, upThreshold = 220;
+            int downThreshold = AdvancedOptions._nBottomHysteresis, upThreshold = AdvancedOptions._nTopHysteresis;
 
             if (drawing)
             {
@@ -492,6 +800,8 @@ namespace AnalysisTestApp
             }
         }
 
+        // Get Images' size difference
+
         private int[] getDeplacement(Bitmap bmp1, Bitmap bmp2)
         {
             int[] d = new int[2];
@@ -501,6 +811,8 @@ namespace AnalysisTestApp
 
             return d;
         }
+
+        // Deplace an image a given number of pixels to get an optimal match
 
         private Bitmap executeReposition(Bitmap bmp1, int[] bestPositions, int h, int w)
         {

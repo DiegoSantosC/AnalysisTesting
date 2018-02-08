@@ -10,8 +10,9 @@ namespace AnalysisTestApp
     {
         private int[,] arrTagMap;
         public int[,] marked;
+        private List<Cluster> identifiedBlobs;
 
-        public ConnectedComponents(int[,] arrSrc, string Timelapse, ROI region)
+        public ConnectedComponents(int[,] arrSrc, string Timelapse, ROI region, string timelapse)
         {
             // Initializing
 
@@ -28,6 +29,8 @@ namespace AnalysisTestApp
 
             List<int> tagRemap = new List<int>();
 
+            identifiedBlobs = new List<Cluster>();
+
             int[,] currTag = new int[nMaxX, nMaxY];
             int tagCounter = 0;
 
@@ -41,7 +44,7 @@ namespace AnalysisTestApp
 
             // First point (0,0) is managed
 
-            if ((region != null || isInside(region, 0, 0)) && (fnMustInclude(arrSrc[0, 0])))
+            if (isInside(region, 0, 0) && (fnMustInclude(arrSrc[0, 0])))
             {
                 currTag[0, 0] = tagCounter;
                 tagRemap.Add(0);
@@ -54,7 +57,7 @@ namespace AnalysisTestApp
             {
                 int nLeftTag = currTag[x - 1, 0];
 
-                if ((region != null || isInside(region, x, 0)) && (fnMustInclude(arrSrc[x, 0])))
+                if (isInside(region, x, 0) && (fnMustInclude(arrSrc[x, 0])))
                 {
                     if (!((nLeftTag != NIL) && fnAreSimilar(arrSrc[x - 1, 0], arrSrc[x, 0])))
                     {
@@ -74,7 +77,7 @@ namespace AnalysisTestApp
 
                 int nDownTag = currTag[0, y - 1];
 
-                if ((region != null || isInside(region, 0, y)) && (fnMustInclude(arrSrc[0, y])))
+                if (isInside(region, 0, y) && (fnMustInclude(arrSrc[0, y])))
                 {
                     if (!((nDownTag != NIL) && fnAreSimilar(arrSrc[0, y - 1], arrSrc[0, y])))
                     {
@@ -92,14 +95,15 @@ namespace AnalysisTestApp
                     nDownTag = currTag[x, y - 1];
                     int nLeftTag = currTag[x - 1, y];
 
-                    if ((region != null || isInside(region, x, y)) && (fnMustInclude(arrSrc[x, y])))
+                    if (isInside(region, x, y) && (fnMustInclude(arrSrc[x, y])))
                     {
                         if ((nLeftTag != NIL) && fnAreSimilar(arrSrc[x - 1, y], arrSrc[x, y]))
                         {
                             currTag[x, y] = nLeftTag;
 
-                            if ((nDownTag != NIL) && (tagRemap.ElementAt(nDownTag) != tagRemap.ElementAt(nLeftTag)) && fnAreSimilar(arrSrc[x, y - 1], arrSrc[x, y]))
+                            if ((nDownTag != NIL) && (tagRemap.ElementAt(nDownTag) != tagRemap.ElementAt(nLeftTag)) && (fnAreSimilar(arrSrc[x, y - 1], arrSrc[x, y])))
                             {
+
                                 int nOrig = tagRemap.ElementAt(nLeftTag);
                                 int nDest = tagRemap.ElementAt(nDownTag);
 
@@ -118,17 +122,16 @@ namespace AnalysisTestApp
 
                                         if (tagRemap.Count > nDest)
                                         {
-                                            tagRemap.Insert(i, nDest);
+                                            tagRemap.Insert(i, nOrig);
                                         }
                                         else
                                         {
-                                            tagRemap.Add(nDest);
+                                            tagRemap.Add(nOrig);
                                         }
 
                                     }
                                 }
                             }
-
                         }
                         else if ((nDownTag != NIL) && fnAreSimilar(arrSrc[0, y - 1], arrSrc[0, y])) currTag[x, y] = nDownTag;
                         else
@@ -147,6 +150,7 @@ namespace AnalysisTestApp
             List<int[]> unremapped = new List<int[]>();
 
             // Execute remapping
+
             for (int y = 0; y < nMaxY; y++)
             {
                 for (int x = 0; x < nMaxX; x++)
@@ -161,7 +165,12 @@ namespace AnalysisTestApp
                         }
                         else if (arrTagMap[x, y] != NIL)
                         {
-                            clusterList.Add(new Cluster(arrTagMap[x, y]));
+                            while (arrTagMap[x, y] != clusterList.Count)
+                            {
+                                clusterList.Add(new Cluster(-1, ""));
+                            }
+
+                            clusterList.Add(new Cluster(arrTagMap[x, y], timelapse));
                             takenIndexes.Add(arrTagMap[x, y]);
                             clusterList.ElementAt(arrTagMap[x, y]).addPoint(x, y, arrSrc[x, y]);
                         }
@@ -172,25 +181,9 @@ namespace AnalysisTestApp
                 }
             }
 
-            //for (int y = 0; y < nMaxY; y++)
-            //{
-            //    Console.WriteLine();
-            //    for (int x = 0; x < nMaxX; x++)
-            //    {
-            //        Console.Write(arrSrc[x, y] + "   ");
-            //    }
-            //}
+            // Final returnable structure
 
-            //for (int y = 0; y < nMaxY; y++)
-            //{
-            //    Console.WriteLine();
-            //    for (int x = 0; x < nMaxX; x++)
-            //    {
-            //        Console.Write(arrTagMap[x,y] + "   ");
-            //    }
-            //}
-
-            // Siso with all cluster's info & drawing bounding boxes in an arrayBox
+            int count = 0;
 
             for (int i = 0; i < clusterList.Count; i++)
             {
@@ -198,39 +191,89 @@ namespace AnalysisTestApp
 
                 if (c.getSize() > 5)
                 {
-                    Console.WriteLine(" Index: " + c.getId());
-                    Console.WriteLine(" Size: " + c.getSize());
+                    c.setIndex(count);
+                    count++;
+                    
+                    identifiedBlobs.Add(c);
 
-                    Console.WriteLine(" Bounding Box: Start = (" + c.getBoundingBox()[0] + " , " + c.getBoundingBox()[1] + "); End = (" + c.getBoundingBox()[2] + " , " + c.getBoundingBox()[3] + ")");
-                    Console.WriteLine(" Color average = " + c.getColorAvg());
-                    Console.WriteLine();
-
-                    // Horizontal lines
-
-                    for (int a = c.getBoundingBox()[0]; a < c.getBoundingBox()[2]; a++)
-                    {
-                        marked[a, c.getBoundingBox()[1]] = -1;
-                        marked[a, c.getBoundingBox()[3]] = -1;
-                    }
-
-                    // Vertica lines
-
-                    for (int a = c.getBoundingBox()[1]; a < c.getBoundingBox()[3]; a++)
-                    {
-                        marked[c.getBoundingBox()[0], a] = -1;
-                        marked[c.getBoundingBox()[2], a] = -1;
-                    }
                 }
             }
-        }
+
+                    // Pixel by pixel label extraction for testing purposes
+
+                    //for (int y = 0; y < nMaxY; y++)
+                    //{
+                    //    Console.WriteLine();
+                    //    for (int x = 0; x < nMaxX; x++)
+                    //    {
+                    //        Console.Write(arrSrc[x, y] + "   ");
+                    //    }
+                    //}
+
+                    //Console.WriteLine();
+
+                    //for (int y = 0; y < nMaxY; y++)
+                    //{
+                    //    Console.WriteLine();
+                    //    for (int x = 0; x < nMaxX; x++)
+                    //    {
+                    //        Console.Write(arrTagMap[x,y] + "   ");
+                    //    }
+                    //}
+
+                    // Siso with all cluster's info & drawing bounding boxes in an arrayBox
+
+                    //for (int i = 0; i < clusterList.Count; i++)
+                    //{
+                    //    Cluster c = clusterList.ElementAt(i);
+
+                    //    if (c.getSize() > 5)
+                    //    {
+                    //        Console.WriteLine(" Index: " + c.getId());
+                    //        Console.WriteLine(" Size: " + c.getSize());
+
+                    //        Console.WriteLine(" Bounding Box: Start = (" + c.getBoundingBox()[0] + " , " + c.getBoundingBox()[1] + "); End = (" + c.getBoundingBox()[2] + " , " + c.getBoundingBox()[3] + ")");
+                    //        Console.WriteLine(" Color average = " + c.getColorAvg());
+                    //        Console.WriteLine(" Color variance = " + c.getColorVar());
+                    //        Console.WriteLine(" Covariance = " + c.covXY());
+                    //        Console.WriteLine(" Pearson Correlation index = " + c.pearson());
+
+                    //        Line l = c.getLine_ev();
+
+                    //        Console.WriteLine(" Line details: ");
+                    //        Console.WriteLine("       Angle: " + l.getAngle());
+                    //        Console.WriteLine("       Offset: " + l.getOffset());
+                    //        Console.WriteLine("       Sine and Cosine: " + l.getSin() + " rads, " + l.getCos() + " rads.");
+
+
+                    //        Console.WriteLine();
+
+                    //        // Horizontal lines
+
+                    //        for (int a = c.getBoundingBox()[0]; a < c.getBoundingBox()[2]; a++)
+                    //        {
+                    //            marked[a, c.getBoundingBox()[1]] = -1;
+                    //            marked[a, c.getBoundingBox()[3]] = -1;
+                    //        }
+
+                    //        // Vertical lines
+
+                    //        for (int a = c.getBoundingBox()[1]; a < c.getBoundingBox()[3]; a++)
+                    //        {
+                    //            marked[c.getBoundingBox()[0], a] = -1;
+                    //            marked[c.getBoundingBox()[2], a] = -1;
+                    //        }
+                    //    }
+                    //}
+                }
 
         // Decide wether if two pixels belong to the same cluster
 
         private bool fnAreSimilar(int value1, int value2)
         {
-            // At first we will only demand that their difference is not bigger than a certain threshold
+            // We will only demand that their difference is not bigger than a certain threshold
 
-            if (Math.Abs(value1 - value2) < 50) return true;
+            if (Math.Abs(value1 - value2) < AdvancedOptions._nSimilarityTolerance) return true;
             else return false;
 
         }
@@ -239,9 +282,9 @@ namespace AnalysisTestApp
 
         private bool fnMustInclude(int currValue)
         {
-            // At first we will only demand it not to be under a certain threshold
+            // We will only demand it not to be under a certain threshold
 
-            if (currValue > 100) return true;
+            if (currValue > AdvancedOptions._nRelevanceThreshold) return true;
             else return false;
         }
 
@@ -249,10 +292,16 @@ namespace AnalysisTestApp
 
         private bool isInside(ROI region, int x, int y)
         {
-            if (x > region.getX0() && x < region.getY0() && y > region.getY0() && y < region.getY1()) return true;
-            else return false;
+            if (x > region.getX0() && x < region.getX1() && y > region.getY0() && y < region.getY1()) return true;
+            else
+            {
+                return false;
+            }
         }
 
-
+        public List<Cluster> getIdentifiedBlobs()
+        {
+            return identifiedBlobs;
+        }
     }
 }
