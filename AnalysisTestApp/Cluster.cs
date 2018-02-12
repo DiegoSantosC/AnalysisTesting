@@ -8,10 +8,10 @@ namespace AnalysisTestApp
 {
     class Cluster
     {
-        private int id, count, countY, countX, countColor, minX, minY, maxX, maxY;
+        private int id, count, countY, countX, countColor, minX, minY, maxX, maxY, step;
         private double countYY, countXX, countXY, countColorSquare;
         private string timelapse;
-        private bool mergedBranch;
+        private int mergedToBranch;
         private List<List<Cluster>> mergeBranches;
 
         public Cluster(int given_ID, string time)
@@ -30,8 +30,9 @@ namespace AnalysisTestApp
             countYY = 0;
             countXY = 0;
             timelapse = time;
-            mergedBranch = false;
+            mergedToBranch = -1;
             mergeBranches = new List<List<Cluster>>();
+            step = -1;
 
         }
 
@@ -40,9 +41,33 @@ namespace AnalysisTestApp
             return id;
         }
 
-        public void hasMerged()
+        public int getStep()
         {
-            mergedBranch = true;
+            return step;
+        }
+
+        public bool hasMerged()
+        {
+            if (mergedToBranch == -1) return true;
+
+            else return false;
+        }
+
+        public int getFather()
+        {
+            return mergedToBranch;
+        }
+
+        public void setFatherBranch(int f)
+        {
+            mergedToBranch = f;
+        }
+
+        // Step refers to the tracking phase in which the cluster has been encountered
+
+        public void setStep(int s)
+        {
+            step = s;
         }
 
         public void addBranch(List<Cluster> c)
@@ -67,6 +92,7 @@ namespace AnalysisTestApp
             countXX += x * x;
             countYY += y * y;
             countXY += x * y;
+
         }
 
         public void setIndex(int index)

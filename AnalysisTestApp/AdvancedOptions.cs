@@ -15,10 +15,10 @@ namespace AnalysisTestApp
     {
         /*  Use :               ConnectedComponents, fnAreSimilar
          *  Definition :        Static grey color value threshold below which two pixels are considered to belong to the same object 
-         *  Recommended value : 50 +- 20;
+         *  Recommended value : 80 +- 20;
          */
 
-        public static int _nSimilarityTolerance = 50;
+        public static int _nSimilarityTolerance = 80;
 
         /*  Use :               ConnectedComponents, fnMustInclude
          *  Definition :        Static grey color value threshold below which a pixel is not considered to be meaningful
@@ -32,7 +32,7 @@ namespace AnalysisTestApp
          *  Recommended value : According to the receip's size so as to avoid it's borders to be considered
          */
 
-        public static int _nROIMargin = 100;
+        public static int _nROIMargin = 120;
 
         /*  Use :               CountAnalysis, findRobinsonReposition
          *  Definition :        Maximun and Minimum expected pixel deplacements according to the Sprout's images usual missmatches 
@@ -70,10 +70,17 @@ namespace AnalysisTestApp
         public static double _dBoundsDiminish = -0.2, _dGreatDeplacement = 0.3, _dAbnormalGrowth = 0.5;
 
         /*  Use :               CountAnalysis, Merged
-         *  Definition :        Tolerance to merging predicted size and center difference, 
+         *  Definition :        Tolerance to merging predicted size and center difference
          *  Recommended value : Tolerance : 0.3 +- 0.1 Distance : 30 +- 10  
          */
 
         public static double _dMergingTolerance = 0.3, _nMergingDistance = 30;
+
+        /*  Use :               ConnectedComponents
+         *  Definition :        Minimum size for a cluster to be considered
+         *  Recommended value : 40 +- 10
+         */
+
+        public static int _nMinimumSize = 40;
     }
 }

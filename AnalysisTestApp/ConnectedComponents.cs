@@ -189,46 +189,46 @@ namespace AnalysisTestApp
             {
                 Cluster c = clusterList.ElementAt(i);
 
-                if (c.getSize() > 5)
+                if (c.getSize() > AdvancedOptions._nMinimumSize)
                 {
                     c.setIndex(count);
                     count++;
-                    
+
                     identifiedBlobs.Add(c);
 
                 }
             }
 
-                    // Pixel by pixel label extraction for testing purposes
+            // Pixel by pixel label extraction for testing purposes
 
-                    //for (int y = 0; y < nMaxY; y++)
-                    //{
-                    //    Console.WriteLine();
-                    //    for (int x = 0; x < nMaxX; x++)
-                    //    {
-                    //        Console.Write(arrSrc[x, y] + "   ");
-                    //    }
-                    //}
+            //for (int y = 0; y < nMaxY; y++)
+            //{
+            //    Console.WriteLine();
+            //    for (int x = 0; x < nMaxX; x++)
+            //    {
+            //        Console.Write(arrSrc[x, y] + "   ");
+            //    }
+            //}
 
-                    //Console.WriteLine();
+            //Console.WriteLine();
 
-                    //for (int y = 0; y < nMaxY; y++)
-                    //{
-                    //    Console.WriteLine();
-                    //    for (int x = 0; x < nMaxX; x++)
-                    //    {
-                    //        Console.Write(arrTagMap[x,y] + "   ");
-                    //    }
-                    //}
+            //for (int y = 0; y < nMaxY; y++)
+            //{
+            //    Console.WriteLine();
+            //    for (int x = 0; x < nMaxX; x++)
+            //    {
+            //        Console.Write(arrTagMap[x,y] + "   ");
+            //    }
+            //}
 
-                    // Siso with all cluster's info & drawing bounding boxes in an arrayBox
+            // Siso with all cluster's info & drawing bounding boxes in an arrayBox
 
-                    //for (int i = 0; i < clusterList.Count; i++)
-                    //{
-                    //    Cluster c = clusterList.ElementAt(i);
+            for (int i = 0; i < clusterList.Count; i++)
+            {
+                Cluster c = clusterList.ElementAt(i);
 
-                    //    if (c.getSize() > 5)
-                    //    {
+                if (c.getSize() > 40)
+                {
                     //        Console.WriteLine(" Index: " + c.getId());
                     //        Console.WriteLine(" Size: " + c.getSize());
 
@@ -250,22 +250,23 @@ namespace AnalysisTestApp
 
                     //        // Horizontal lines
 
-                    //        for (int a = c.getBoundingBox()[0]; a < c.getBoundingBox()[2]; a++)
-                    //        {
-                    //            marked[a, c.getBoundingBox()[1]] = -1;
-                    //            marked[a, c.getBoundingBox()[3]] = -1;
-                    //        }
+                    for (int a = c.getBoundingBox()[0]; a < c.getBoundingBox()[2]; a++)
+                    {
+                        marked[a, c.getBoundingBox()[1]] = -1;
+                        marked[a, c.getBoundingBox()[3]] = -1;
+                    }
 
-                    //        // Vertical lines
+                    // Vertical lines
 
-                    //        for (int a = c.getBoundingBox()[1]; a < c.getBoundingBox()[3]; a++)
-                    //        {
-                    //            marked[c.getBoundingBox()[0], a] = -1;
-                    //            marked[c.getBoundingBox()[2], a] = -1;
-                    //        }
-                    //    }
-                    //}
+                    for (int a = c.getBoundingBox()[1]; a < c.getBoundingBox()[3]; a++)
+                    {
+                        marked[c.getBoundingBox()[0], a] = -1;
+                        marked[c.getBoundingBox()[2], a] = -1;
+                    }
                 }
+            }
+        }
+    
 
         // Decide wether if two pixels belong to the same cluster
 
